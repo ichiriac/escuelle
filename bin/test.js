@@ -12,7 +12,7 @@ exec(
   'node ' + dir('node_modules/istanbul/lib/cli.js') + ' cover '
   + dir('node_modules/mocha/bin/_mocha') + ' '
   + dir('test')
-  + ' -- -R spec -t 100'
+  + ' -- -R spec -t 2000'
   , function (error, stdout, stderr) {
     sys.print(stdout);
     sys.print(stderr);

@@ -91,7 +91,7 @@ selectClause
     : SELECT selectExprList 
       FROM tableExprList
       optWhereClause optGroupByClause optHavingClause optOrderByClause
-      { $$ = {nodeType: 'Select', columns: $2, from: $4, where:$5, groupBy:$6, having:$7, orderBy:$8}; }
+      { $$ = {type: 'select', columns: $2, from: $4, where:$5, group:$6, having:$7, order:$8}; }
     ;
 
 optWhereClause
@@ -120,7 +120,7 @@ orderByList
     ;
 
 orderByListItem
-    : expression optOrderByOrder optOrderByNulls { $$ = {expression:$1, orderAsc: $2, orderByNulls: $3}; }
+    : expression optOrderByOrder optOrderByNulls { $$ = {expr:$1, orderAsc: $2, orderByNulls: $3}; }
     ;
     
 optOrderByOrder
@@ -141,9 +141,9 @@ selectExprList
     ;
 
 selectExpr
-    : STAR { $$ = {nodeType: 'Column', value:'*'}; }
-    | QUALIFIED_STAR  { $$ = {nodeType: 'Column', value:$1}; }
-    | expression optTableExprAlias  { $$ = {nodeType: 'Column', value:$1, alias:$2}; }
+    : STAR { $$ = {type: 'column', value:'*'}; }
+    | QUALIFIED_STAR  { $$ = {type: 'column', value:$1}; }
+    | expression optTableExprAlias  { $$ = {type: 'column', value:$1, alias:$2}; }
     ;
 
 tableExprList
@@ -152,13 +152,13 @@ tableExprList
     ;
 
 tableExpr
-    : joinComponent { $$ = {nodeType:'TableExpr', value: [$1]}; }
-    | tableExpr optJoinModifier JOIN joinComponent { $$ = $1; $1.value.push({nodeType:'TableExpr', value: $4, modifier:$2}); }
-    | tableExpr optJoinModifier JOIN joinComponent ON expression { $$ = $1; $1.value.push({nodeType:'TableExpr', value: $4, modifier:$2, expression:$6}); }
+    : joinComponent { $$ = {type:'table', value: $1, join: []}; }
+    | tableExpr optJoinModifier JOIN joinComponent { $$ = $1; $1.join.push({type:'table', value: $4, modifier:$2}); }
+    | tableExpr optJoinModifier JOIN joinComponent ON expression { $$ = $1; $1.join.push({type:'table', value: $4, modifier:$2, expr:$6}); }
     ;
 
 joinComponent
-    : tableExprPart optTableExprAlias { $$ = {exprName: $1, alias: $2}; }
+    : tableExprPart optTableExprAlias { $$ = {name: $1, alias: $2}; }
     ;
 
 tableExprPart
@@ -170,7 +170,7 @@ tableExprPart
 optTableExprAlias
     : { $$ = null; }
     | IDENTIFIER { $$ = {value: $1 }; }
-    | AS IDENTIFIER { $$ = {value: $2, includeAs: 1}; }
+    | AS IDENTIFIER { $$ = {value: $2, alias: 1}; }
     ;
 
 optJoinModifier
@@ -186,8 +186,8 @@ optJoinModifier
     ;
 
 expression
-    : andCondition { $$ = {nodeType:'AndCondition', value: $1}; }
-    | expression LOGICAL_OR andCondition { $$ = {nodeType:'OrCondition', left: $1, right: $3}; }
+    : andCondition { $$ = {type:'and', value: $1}; }
+    | expression LOGICAL_OR andCondition { $$ = {type:'or', left: $1, right: $3}; }
     ;
 
 andCondition
@@ -196,10 +196,10 @@ andCondition
     ;
 
 condition
-    : operand { $$ = {nodeType: 'Condition', value: $1}; }
-    | operand conditionRightHandSide { $$ = {nodeType: 'BinaryCondition', left: $1, right: $2}; }
-    | EXISTS LPAREN selectClause RPAREN { $$ = {nodeType: 'ExistsCondition', value: $3}; }
-    | LOGICAL_NOT condition { $$ = {nodeType: 'NotCondition', value: $2}; }
+    : operand { $$ = {type: 'Condition', value: $1}; }
+    | operand conditionRightHandSide { $$ = {type: 'BinaryCondition', left: $1, right: $2}; }
+    | EXISTS LPAREN selectClause RPAREN { $$ = {type: 'ExistsCondition', value: $3}; }
+    | LOGICAL_NOT condition { $$ = {type: 'NotCondition', value: $2}; }
     ;
 
 compare
@@ -221,24 +221,24 @@ conditionRightHandSide
     ;
 
 rhsCompareTest
-    : compare operand { $$ = {nodeType: 'RhsCompare', op: $1, value: $2 }; }
-    | compare ALL LPAREN selectClause RPAREN { $$ = {nodeType: 'RhsCompareSub', op:$1, kind: $2, value: $4 }; }
-    | compare ANY LPAREN selectClause RPAREN { $$ = {nodeType: 'RhsCompareSub', op:$1, kind: $2, value: $4 }; }
-    | compare SOME LPAREN selectClause RPAREN { $$ = {nodeType: 'RhsCompareSub', op:$1, kind: $2, value: $4 }; }
+    : compare operand { $$ = {type: 'RhsCompare', op: $1, value: $2 }; }
+    | compare ALL LPAREN selectClause RPAREN { $$ = {type: 'RhsCompareSub', op:$1, kind: $2, value: $4 }; }
+    | compare ANY LPAREN selectClause RPAREN { $$ = {type: 'RhsCompareSub', op:$1, kind: $2, value: $4 }; }
+    | compare SOME LPAREN selectClause RPAREN { $$ = {type: 'RhsCompareSub', op:$1, kind: $2, value: $4 }; }
     ;
 
 rhsIsTest
-    : IS operand { $$ = {nodeType: 'RhsIs', value: $2}; }
-    | IS LOGICAL_NOT operand { $$ = {nodeType: 'RhsIs', value: $3, not:1}; }
-    | IS DISTINCT FROM operand { $$ = {nodeType: 'RhsIs', value: $4, distinctFrom:1}; }
-    | IS LOGICAL_NOT DISTINCT FROM operand { $$ = {nodeType: 'RhsIs', value: $5, not:1, distinctFrom:1}; }
+    : IS operand { $$ = {type: 'RhsIs', value: $2}; }
+    | IS LOGICAL_NOT operand { $$ = {type: 'RhsIs', value: $3, not:1}; }
+    | IS DISTINCT FROM operand { $$ = {type: 'RhsIs', value: $4, distinctFrom:1}; }
+    | IS LOGICAL_NOT DISTINCT FROM operand { $$ = {type: 'RhsIs', value: $5, not:1, distinctFrom:1}; }
     ;
     
 rhsInTest
-    : IN LPAREN selectClause RPAREN { $$ = { nodeType: 'RhsInSelect', value: $3 }; }
-    | LOGICAL_NOT IN LPAREN selectClause RPAREN { $$ = { nodeType: 'RhsInSelect', value: $4, not:1 }; }
-    | IN LPAREN commaSepExpressionList RPAREN { $$ = { nodeType: 'RhsInExpressionList', value: $3 }; }
-    | LOGICAL_NOT IN LPAREN commaSepExpressionList RPAREN { $$ = { nodeType: 'RhsInExpressionList', value: $4, not:1 }; }
+    : IN LPAREN selectClause RPAREN { $$ = { type: 'RhsInSelect', value: $3 }; }
+    | LOGICAL_NOT IN LPAREN selectClause RPAREN { $$ = { type: 'RhsInSelect', value: $4, not:1 }; }
+    | IN LPAREN commaSepExpressionList RPAREN { $$ = { type: 'RhsInExpressionList', value: $3 }; }
+    | LOGICAL_NOT IN LPAREN commaSepExpressionList RPAREN { $$ = { type: 'RhsInExpressionList', value: $4, not:1 }; }
     ;
 
 commaSepExpressionList
@@ -268,51 +268,51 @@ optFunctionExpressionList
     ;
 
 rhsLikeTest
-    : LIKE operand { $$ = {nodeType: 'RhsLike', value: $2}; }
-    | LOGICAL_NOT LIKE operand { $$ = {nodeType: 'RhsLike', value: $3, not:1}; }
+    : LIKE operand { $$ = {type: 'RhsLike', value: $2}; }
+    | LOGICAL_NOT LIKE operand { $$ = {type: 'RhsLike', value: $3, not:1}; }
     ;
 
 rhsBetweenTest
-    : BETWEEN operand LOGICAL_AND operand { $$ = {nodeType: 'RhsBetween', left: $2, right: $4}; }
-    | LOGICAL_NOT BETWEEN operand LOGICAL_AND operand { $$ = {nodeType: 'RhsBetween', left: $3, right: $5, not:1}; }
+    : BETWEEN operand LOGICAL_AND operand { $$ = {type: 'RhsBetween', left: $2, right: $4}; }
+    | LOGICAL_NOT BETWEEN operand LOGICAL_AND operand { $$ = {type: 'RhsBetween', left: $3, right: $5, not:1}; }
     ;
 
 operand
     : summand { $$ = $1; }
-    | operand CONCAT summand { $$ = {nodeType:'Operand', left:$1, right:$3, op:$2}; }
+    | operand CONCAT summand { $$ = {type:'Operand', left:$1, right:$3, op:$2}; }
     ;
 
 
 summand
     : factor { $$ = $1; }
-    | summand PLUS factor { $$ = {nodeType:'Summand', left:$1, right:$3, op:$2}; }
-    | summand MINUS factor { $$ = {nodeType:'Summand', left:$1, right:$3, op:$2}; }
+    | summand PLUS factor { $$ = {type:'Summand', left:$1, right:$3, op:$2}; }
+    | summand MINUS factor { $$ = {type:'Summand', left:$1, right:$3, op:$2}; }
     ;
 
 factor
     : term { $$ = $1; }
-    | factor DIVIDE term { $$ = {nodeType:'Factor', left:$1, right:$3, op:$2}; }
-    | factor STAR term { $$ = {nodeType:'Factor', left:$1, right:$3, op:$2}; }
-    | factor MODULO term { $$ = {nodeType:'Factor', left:$1, right:$3, op:$2}; }
+    | factor DIVIDE term { $$ = {type:'Factor', left:$1, right:$3, op:$2}; }
+    | factor STAR term { $$ = {type:'Factor', left:$1, right:$3, op:$2}; }
+    | factor MODULO term { $$ = {type:'Factor', left:$1, right:$3, op:$2}; }
     ;
 
 term
-    : value { $$ = {nodeType: 'Term', value: $1}; }
-    | IDENTIFIER { $$ = {nodeType: 'Term', value: $1}; }
-    | QUALIFIED_IDENTIFIER { $$ = {nodeType: 'Term', value: $1}; }
+    : value { $$ = {type: 'Term', value: $1}; }
+    | IDENTIFIER { $$ = {type: 'Term', value: $1}; }
+    | QUALIFIED_IDENTIFIER { $$ = {type: 'Term', value: $1}; }
     | caseWhen { $$ = $1; }
-    | LPAREN expression RPAREN { $$ = {nodeType: 'Term', value: $2}; }
-    | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {nodeType: 'FunctionCall', name: $1, args: $3}; }
-    | QUALIFIED_IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {nodeType: 'FunctionCall', name: $1, args: $3}; }
+    | LPAREN expression RPAREN { $$ = {type: 'Term', value: $2}; }
+    | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'FunctionCall', name: $1, args: $3}; }
+    | QUALIFIED_IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'FunctionCall', name: $1, args: $3}; }
     ;
 
 caseWhen
-    : CASE caseWhenList optCaseWhenElse END { $$ = {nodeType:'Case', clauses: $2, else: $3}; }
+    : CASE caseWhenList optCaseWhenElse END { $$ = {type:'Case', clauses: $2, else: $3}; }
     ;
 
 caseWhenList
-    : caseWhenList WHEN expression THEN expression { $$ = $1; $1.push({nodeType: 'CaseItem', when: $3, then: $5}); }
-    | WHEN expression THEN expression { $$ = [{nodeType: 'CaseItem', when: $2, then: $4}]; }
+    : caseWhenList WHEN expression THEN expression { $$ = $1; $1.push({type: 'CaseItem', when: $3, then: $5}); }
+    | WHEN expression THEN expression { $$ = [{type: 'CaseItem', when: $2, then: $4}]; }
     ;
 
 optCaseWhenElse

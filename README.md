@@ -6,15 +6,15 @@ This library contains an SQL parser that converts a query string into a structur
 
 ## How to use it
 
-1. Add it to you project with :
+- Add it to you project with :
 
-```
+```sh
 $ npm install esquelle --save
 ```
 
-2. And use it into your code :
+- And use it into your code :
 
-```
+```js
 var sql_parser = require('esquelle');
 
 console.log(
