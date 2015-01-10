@@ -1,0 +1,31 @@
+{
+  "name": "escuelle",
+  "version": "0.0.1",
+  "description": "SQL tokeniser & parser",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./bin/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ichiriac/escuelle.git"
+  },
+  "keywords": [
+    "sql",
+    "parser",
+    "tokenizer",
+    "ast"
+  ],
+  "author": "Ioan CHIRIAC",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ichiriac/escuelle/issues"
+  },
+  "homepage": "https://github.com/ichiriac/escuelle",
+  "devDependencies": {
+    "jison": "^0.4.15",
+    "mocha": "^2.1.0",
+    "istanbul": "^0.3.5",
+    "coveralls": "^2.11.2"
+  }
+}
