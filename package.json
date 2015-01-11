@@ -4,7 +4,7 @@
   "description": "SQL tokeniser & parser",
   "main": "index.js",
   "scripts": {
-    "test": "node ./bin/test.js"
+    "test": "node node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha  -- -R spec -t 1000"
   },
   "repository": {
     "type": "git",
