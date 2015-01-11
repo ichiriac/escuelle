@@ -3,6 +3,7 @@
 This library contains an SQL parser that converts a query string into a structured object (AST).
 
 [![Coverage Status](https://coveralls.io/repos/ichiriac/escuelle/badge.png)](https://coveralls.io/r/ichiriac/escuelle)
+[![Build Status](https://travis-ci.org/ichiriac/escuelle.svg?branch=master)](https://travis-ci.org/ichiriac/escuelle)
 
 ## How to use it
 
