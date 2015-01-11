@@ -71,7 +71,7 @@
 ['](\\.|[^'])*[']                                return 'STRING'
 'NULL'                                           return 'NULL'
 (true|false)                                     return 'BOOLEAN'
-':'[a-zA-Z_][a-zA-Z0-9_]*                          return 'PARAMETER'
+':'[a-zA-Z_][a-zA-Z0-9_]*                        return 'PARAMETER'
 [0-9]+(\.[0-9]+)?                                return 'NUMERIC'
 [a-zA-Z_][a-zA-Z0-9_]*                           return 'IDENTIFIER'
 <<EOF>>                                          return 'EOF'
@@ -88,10 +88,15 @@ main
     ;
 
 selectClause
-    : SELECT selectExprList 
+    : SELECT optDistinct selectExprList 
       FROM tableExprList
       optWhereClause optGroupByClause optHavingClause optOrderByClause
-      { $$ = {type: 'select', columns: $2, from: $4, where:$5, group:$6, having:$7, order:$8}; }
+      { $$ = {type: 'select', distinct: !!$1, columns: $3, from: $5, where:$6, group:$7, having:$8, order:$9}; }
+    ;
+
+optDistinct
+    : { $$ = false; }
+    | DISTINCT { $$ = true; }
     ;
 
 optWhereClause
@@ -297,22 +302,22 @@ factor
     ;
 
 term
-    : value { $$ = {type: 'Term', value: $1}; }
+    : value { $$ = $1; }
     | IDENTIFIER { $$ = {type: 'Term', value: $1}; }
     | QUALIFIED_IDENTIFIER { $$ = {type: 'Term', value: $1}; }
     | caseWhen { $$ = $1; }
     | LPAREN expression RPAREN { $$ = {type: 'Term', value: $2}; }
-    | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'FunctionCall', name: $1, args: $3}; }
-    | QUALIFIED_IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'FunctionCall', name: $1, args: $3}; }
+    | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
+    | QUALIFIED_IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
     ;
 
 caseWhen
-    : CASE caseWhenList optCaseWhenElse END { $$ = {type:'Case', clauses: $2, else: $3}; }
+    : CASE caseWhenList optCaseWhenElse END { $$ = {type:'case', clauses: $2, else: $3}; }
     ;
 
 caseWhenList
-    : caseWhenList WHEN expression THEN expression { $$ = $1; $1.push({type: 'CaseItem', when: $3, then: $5}); }
-    | WHEN expression THEN expression { $$ = [{type: 'CaseItem', when: $2, then: $4}]; }
+    : caseWhenList WHEN expression THEN expression { $$ = $1; $1.push({when: $3, then: $5}); }
+    | WHEN expression THEN expression { $$ = [{when: $2, then: $4}]; }
     ;
 
 optCaseWhenElse
@@ -321,9 +326,10 @@ optCaseWhenElse
     ;
 
 value
-    : STRING { $$ = $1; } 
-    | NUMERIC { $$ = $1; }
-    | BOOLEAN { $$ = $1; }
-    | NULL { $$ = $1; }
+    : STRING { $$ = {type: 'string', value: $1}; } 
+    | NUMERIC { $$ = {type: 'number', value: $1}; }
+    | PARAMETER { $$ = {type: 'param', name: $1.substring(1)}; }
+    | BOOLEAN { $$ = {type: 'boolean', value: $1}; }
+    | NULL { $$ = {type: 'null'}; }
     ;
 

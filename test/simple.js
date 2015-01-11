@@ -8,7 +8,8 @@ describe('Simple Select', function(){
     'SELECT * FROM table1 a INNER JOIN table2 b ON a.id = b.fk',
     'SELECT * FROM table1 a, table2 b WHERE a.id = b.fk',
     'SELECT CustomCol as Alias FROM table ORDER BY CustomCol, OtherCol DESC',
-    'SELECT Label, COUNT(*) as Counter FROM table GROUP BY Label'
+    'SELECT Label, COUNT(*) as Counter FROM table GROUP BY Label',
+    'SELECT DISTINCT * FROM this WHERE id = :arg1'
   ];
 
   it(query[0], function(){
@@ -44,6 +45,14 @@ describe('Simple Select', function(){
     var ast = lib(query[4]);
     // check columns & group by
     assert(true);
+  });
+
+  it(query[5], function(){
+    var ast = lib(query[5]);
+    // check param & distinct
+    assert(ast.distinct === true);
+    assert(ast.where.value[0].right.value.type === 'param');
+    assert(ast.where.value[0].right.value.name === 'arg1');
   });
 
 });
