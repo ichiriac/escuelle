@@ -10,13 +10,13 @@ This library contains an SQL parser that converts a query string into a structur
 - Add it to you project with :
 
 ```sh
-$ npm install esquelle --save
+$ npm install escuelle --save
 ```
 
 - And use it into your code :
 
 ```js
-var sql_parser = require('esquelle');
+var sql_parser = require('escuelle');
 
 console.log(
   sql_parser('SELECT * FROM your_table')
