@@ -21,6 +21,7 @@
 'BETWEEN'                                        return 'BETWEEN'
 'GROUP BY'                                       return 'GROUP_BY'
 'HAVING'                                         return 'HAVING'
+'LIMIT'                                          return 'LIMIT'
 'ORDER BY'                                       return 'ORDER_BY'
 ','                                              return 'COMMA'
 '+'                                              return 'PLUS'
@@ -84,14 +85,26 @@
 %% /* language grammar */
 
 main
-    : selectClause EOF { return $1; } 
+    : selectClause EOF { return $1; }
     ;
 
 selectClause
-    : SELECT optDistinct selectExprList 
+    : SELECT optDistinct selectExprList
       FROM tableExprList
-      optWhereClause optGroupByClause optHavingClause optOrderByClause
-      { $$ = {type: 'select', distinct: !!$1, columns: $3, from: $5, where:$6, group:$7, having:$8, order:$9}; }
+      optWhereClause optGroupByClause optHavingClause optOrderByClause optLimitClause
+      {
+        $$ = {
+          type: 'select',
+          distinct: !!$1,
+          columns: $3,
+          from: $5,
+          where:$6,
+          group:$7,
+          having:$8,
+          order:$9,
+          limit: $10
+        };
+      }
     ;
 
 optDistinct
@@ -114,6 +127,12 @@ optHavingClause
     | HAVING expression { $$ = $2; }
     ;
 
+optLimitClause
+    : { $$ = null; }
+    | LIMIT NUMERIC COMMA NUMERIC { $$ = [parseInt($2), parseInt($4)]; }
+    | LIMIT NUMERIC { $$ = [0, parseInt($2)]; }
+    ;
+
 optOrderByClause
     : { $$ = null; }
     | ORDER_BY orderByList { $$ = $2; }
@@ -127,7 +146,7 @@ orderByList
 orderByListItem
     : expression optOrderByOrder optOrderByNulls { $$ = {expr:$1, orderAsc: $2, orderByNulls: $3}; }
     ;
-    
+
 optOrderByOrder
     : { $$ = true; }
     | ASC { $$ = true; }
@@ -139,9 +158,9 @@ optOrderByNulls
     | NULLS FIRST { $$ = 'NULLS FIRST'; }
     | NULLS LAST { $$ = 'NULLS LAST'; }
     ;
-    
+
 selectExprList
-    : selectExpr { $$ = [$1]; } 
+    : selectExpr { $$ = [$1]; }
     | selectExprList COMMA selectExpr { $$ = $1; $1.push($3); }
     ;
 
@@ -238,7 +257,7 @@ rhsIsTest
     | IS DISTINCT FROM operand { $$ = {type: 'RhsIs', value: $4, distinctFrom:1}; }
     | IS LOGICAL_NOT DISTINCT FROM operand { $$ = {type: 'RhsIs', value: $5, not:1, distinctFrom:1}; }
     ;
-    
+
 rhsInTest
     : IN LPAREN selectClause RPAREN { $$ = { type: 'RhsInSelect', value: $3 }; }
     | LOGICAL_NOT IN LPAREN selectClause RPAREN { $$ = { type: 'RhsInSelect', value: $4, not:1 }; }
@@ -326,10 +345,9 @@ optCaseWhenElse
     ;
 
 value
-    : STRING { $$ = {type: 'string', value: $1}; } 
+    : STRING { $$ = {type: 'string', value: $1}; }
     | NUMERIC { $$ = {type: 'number', value: $1}; }
     | PARAMETER { $$ = {type: 'param', name: $1.substring(1)}; }
     | BOOLEAN { $$ = {type: 'boolean', value: $1}; }
     | NULL { $$ = {type: 'null'}; }
     ;
-

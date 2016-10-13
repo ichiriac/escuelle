@@ -9,7 +9,8 @@ describe('Simple Select', function(){
     'SELECT * FROM table1 a, table2 b WHERE a.id = b.fk',
     'SELECT CustomCol as Alias FROM table ORDER BY CustomCol, OtherCol DESC',
     'SELECT Label, COUNT(*) as Counter FROM table GROUP BY Label',
-    'SELECT DISTINCT * FROM this WHERE id = :arg1'
+    'SELECT DISTINCT * FROM this WHERE id = :arg1',
+    'SELECT * FROM TABLE LIMIT 1, 2'
   ];
 
   it(query[0], function(){
@@ -54,5 +55,14 @@ describe('Simple Select', function(){
     assert(ast.where.value[0].right.value.type === 'param');
     assert(ast.where.value[0].right.value.name === 'arg1');
   });
+
+  it(query[6], function(){
+    var ast = lib(query[6]);
+    // check limit statement
+    assert(ast.limit && ast.limit.length === 2);
+    assert(ast.limit[0] === 1);
+    assert(ast.limit[1] === 2);
+  });
+
 
 });
