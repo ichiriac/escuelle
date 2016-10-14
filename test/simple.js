@@ -28,6 +28,7 @@ describe('Simple Select', function(){
       'l != 1 OR ' +
       'm IN (a, b, c) OR '+
       'n NOT IN (a, b, c) ',
+    'SELECT * FROM [TABLE] WHERE [A] = 1'
   ];
 
   it(query[0], function(){
@@ -115,6 +116,14 @@ describe('Simple Select', function(){
     assert(ast.where.rules[11].operator === 'not_equal');
     assert(ast.where.rules[12].operator === 'in');
     assert(ast.where.rules[13].operator === 'not_in');
+  });
+
+  it(query[10], function(){
+    var ast = lib(query[10]);
+    // test MS access Column escape syntax
+    assert(ast.from[0].type === 'table');
+    assert(ast.from[0].value.name === 'TABLE');
+    assert(ast.where.rules[0].id === 'A');
   });
 
 });

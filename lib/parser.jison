@@ -12,6 +12,7 @@
 %%
 
 [a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*   return 'QUALIFIED_IDENTIFIER'
+\[[a-zA-Z_][a-zA-Z0-9_]*\]\.\[[a-zA-Z_][a-zA-Z0-9_]*\]   return 'MS_QUALIFIED_IDENTIFIER'
 [a-zA-Z_][a-zA-Z0-9_]*\.\*                       return 'QUALIFIED_STAR'
 \s+                                              /* skip whitespace */
 'SELECT'                                         return 'SELECT'
@@ -75,6 +76,7 @@
 ':'[a-zA-Z_][a-zA-Z0-9_]*                        return 'PARAMETER'
 [0-9]+(\.[0-9]+)?                                return 'NUMERIC'
 [a-zA-Z_][a-zA-Z0-9_]*                           return 'IDENTIFIER'
+\[[a-zA-Z_][a-zA-Z0-9_]*\]                       return 'MS_IDENTIFIER'
 <<EOF>>                                          return 'EOF'
 .                                                return 'INVALID'
 
@@ -188,6 +190,8 @@ joinComponent
 tableExprPart
     : IDENTIFIER { $$ = $1; }
     | QUALIFIED_IDENTIFIER { $$ = $1; }
+    | MS_IDENTIFIER { $$ = $1.substring(1, $1.length - 1); }
+    | MS_QUALIFIED_IDENTIFIER { $$ = $1.substring(1, $1.length - 1); }
     | LPAREN selectClause RPAREN { $$ = $2; }
     ;
 
@@ -374,6 +378,8 @@ term
     : value { $$ = $1; }
     | IDENTIFIER { $$ = {type: 'Term', value: $1}; }
     | QUALIFIED_IDENTIFIER { $$ = {type: 'Term', value: $1}; }
+    | MS_IDENTIFIER { $$ = {type: 'Term', value: $1.substring(1, $1.length - 1)}; }
+    | MS_QUALIFIED_IDENTIFIER { $$ = {type: 'Term', value: $1.substring(1, $1.length - 1)}; }
     | caseWhen { $$ = $1; }
     | LPAREN expression RPAREN { $$ = $2; }
     | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
