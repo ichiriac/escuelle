@@ -210,30 +210,80 @@ optJoinModifier
     ;
 
 expression
-    : andCondition { $$ = {type:'and', value: $1}; }
-    | expression LOGICAL_OR andCondition { $$ = {type:'or', left: $1, right: $3}; }
-    ;
-
-andCondition
-    : condition { $$ = [$1]; }
-    | andCondition LOGICAL_AND condition { $$ = $1; $1.push($3); }
+    : condition { $$ = { condition:'AND', rules: [$1]}; }
+    | condition LOGICAL_AND expression {
+      if($3.condition === 'AND') {
+        $3.rules.unshift($1);
+        $1 = $3.rules;
+      } else {
+        if ($3.rules.length === 1) $3 = $3.rules[0];
+        $1 = [$1, $3];
+      }
+      $$ = { condition: 'AND', rules: $1 };
+    }
+    | condition LOGICAL_OR expression {
+      if ($3.condition === 'OR') {
+        $3.rules.unshift($1);
+        $1 = $3.rules;
+      } else {
+        if ($3.rules.length === 1) $3 = $3.rules[0];
+        $1 = [$1, $3];
+      }
+      $$ = { condition: 'OR', rules: $1 };
+    }
     ;
 
 condition
-    : operand { $$ = {type: 'Condition', value: $1}; }
-    | operand conditionRightHandSide { $$ = {type: 'BinaryCondition', left: $1, right: $2}; }
+    : operand { $$ = $1; }
+    | operand conditionRightHandSide {
+      if ($1.type === 'Term' && $1.value) {
+        $1 = $1.value;
+      }
+      if ($2.value && $2.value.type && $2.value.value) {
+        $2.value = $2.value.value;
+      }
+      if ($2.type === 'RhsIs') {
+        if (!$2.value || $2.value.type == 'null') {
+          $$ = { operator: $2.not ? 'is_not_null' : 'is_null', id: $1 };
+        } else {
+          $$ = { operator: $2.not ? 'is_not' : 'is', id: $1, value: $2.value };
+        }
+      } else if ($2.type === 'RhsLike') {
+        if ($2.value[0] === '%') {
+          $$ = { operator: $2.not ? 'not_ends_with' : 'ends_with', id: $1, value: $2.value };
+        } else if ($2.value.substring(-1) === '%') {
+          $$ = { operator: $2.not ? 'not_begins_with' : 'begins_with', id: $1, value: $2.value };
+        } else {
+          $$ = { operator: $2.not ? 'not_contains' : 'contains', id: $1, value: $2.value };
+        }
+      } else if ($2.type === 'RhsBetween') {
+        if ($2.left.type && $2.left.value) {
+          $2.left = $2.left.value;
+        }
+        if ($2.right.type && $2.right.value) {
+          $2.right = $2.right.value;
+        }
+        $$ = { operator: $2.not ? 'not_between' : 'between', id: $1, value: [$2.left, $2.right] };
+      } else if ($2.type === 'RhsInExpressionList') {
+        $$ = { operator: $2.not ? 'not_in' : 'in', id: $1, value: $2.value };
+      } else if ($2.op) {
+        $$ = { operator: $2.op, id: $1, value: $2.value };
+      } else {
+        $$ = { type: 'BinaryCondition', left: $1, right: $2 };
+      }
+    }
     | EXISTS LPAREN selectClause RPAREN { $$ = {type: 'ExistsCondition', value: $3}; }
     | LOGICAL_NOT condition { $$ = {type: 'NotCondition', value: $2}; }
     ;
 
 compare
-    : CMP_EQUALS { $$ = $1; }
-    | CMP_NOTEQUALS { $$ = $1; }
-    | CMP_NOTEQUALS_BASIC { $$ = $1; }
-    | CMP_GREATER { $$ = $1; }
-    | CMP_GREATEROREQUAL { $$ = $1; }
-    | CMP_LESS { $$ = $1; }
-    | CMP_LESSOREQUAL { $$ = $1; }
+    : CMP_EQUALS { $$ = 'equal'; }
+    | CMP_NOTEQUALS { $$ = 'not_equal'; }
+    | CMP_NOTEQUALS_BASIC { $$ = 'not_equal'; }
+    | CMP_GREATER { $$ = 'greater'; }
+    | CMP_GREATEROREQUAL { $$ = 'greater_or_equal'; }
+    | CMP_LESS { $$ = 'less'; }
+    | CMP_LESSOREQUAL { $$ = 'less_or_equal'; }
     ;
 
 conditionRightHandSide
@@ -325,7 +375,7 @@ term
     | IDENTIFIER { $$ = {type: 'Term', value: $1}; }
     | QUALIFIED_IDENTIFIER { $$ = {type: 'Term', value: $1}; }
     | caseWhen { $$ = $1; }
-    | LPAREN expression RPAREN { $$ = {type: 'Term', value: $2}; }
+    | LPAREN expression RPAREN { $$ = $2; }
     | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
     | QUALIFIED_IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
     ;
