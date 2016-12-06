@@ -333,6 +333,7 @@ functionParam
 
 functionExpressionList
     : functionExpressionList COMMA functionParam { $$ = $1; $1.push($3); }
+    | functionExpressionList ';' functionParam { $$ = $1; $1.push($3);  }
     | functionParam { $$ = [$1]; }
     ;
 
