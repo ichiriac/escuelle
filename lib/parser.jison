@@ -76,7 +76,7 @@
 ':'[a-zA-Z_][a-zA-Z0-9_]*                        return 'PARAMETER'
 [0-9]+(\.[0-9]+)?                                return 'NUMERIC'
 [a-zA-Z_][a-zA-Z0-9_]*                           return 'IDENTIFIER'
-\[[a-zA-Z_][a-zA-Z0-9_]*\]                       return 'MS_IDENTIFIER'
+\[[a-zA-Z_][^\]]*\]                              return 'MS_IDENTIFIER'
 <<EOF>>                                          return 'EOF'
 .                                                return 'INVALID'
 
@@ -192,6 +192,7 @@ tableExprPart
     | QUALIFIED_IDENTIFIER { $$ = $1; }
     | MS_IDENTIFIER { $$ = $1.substring(1, $1.length - 1); }
     | MS_QUALIFIED_IDENTIFIER { $$ = $1.substring(1, $1.length - 1); }
+    | STRING { $$ = $1.substring(1, $1.length - 1); }
     | LPAREN selectClause RPAREN { $$ = $2; }
     ;
 
