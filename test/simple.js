@@ -57,12 +57,16 @@ describe('Simple Select', function(){
   it(query[3], function(){
     var ast = lib(query[3]);
     // check columns & orders
+    assert(ast.columns[0].value === 'CustomCol');
+    assert(ast.columns[0].alias === 'Alias');
     assert(true);
   });
 
   it(query[4], function(){
     var ast = lib(query[4]);
     // check columns & group by
+    assert(ast.columns[0].value === 'Label');
+    assert(!ast.columns[0].alias);
     assert(true);
   });
 

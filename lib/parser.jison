@@ -168,8 +168,27 @@ selectExprList
 
 selectExpr
     : STAR { $$ = {type: 'column', value:'*'}; }
-    | QUALIFIED_STAR  { $$ = {type: 'column', value:$1}; }
-    | expression optTableExprAlias  { $$ = {type: 'column', value:$1, alias:$2}; }
+    | QUALIFIED_STAR  { $$ = {type: 'column', value:$1}; }    
+    | selectColumn optTableExprAlias  { $$ = {type: 'column', value:$1, alias:$2}; }
+    | LPAREN selectClause RPAREN optTableExprAlias { $$ = {type: 'query', value:$2, alias:$4 }; }
+    | value optTableExprAlias  { $$ = {type: 'static', value:$1, alias:$2}; }
+    | selectExprColumn optTableExprAlias  { $$ = {type: 'expr', value:$1, alias:$2}; }
+    ;
+
+selectColumn
+    :
+    IDENTIFIER { $$ = $1; }
+    | QUALIFIED_IDENTIFIER { $$ = $1; }
+    | MS_IDENTIFIER { $$ = $1.substring(1, $1.length - 1); }
+    | MS_QUALIFIED_IDENTIFIER { $$ = $1.substring(1, $1.length - 1); }
+    ;
+
+selectExprColumn
+    :
+      caseWhen { $$ = $1; }
+    | LPAREN expression RPAREN { $$ = $2; }
+    | IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
+    | QUALIFIED_IDENTIFIER LPAREN optFunctionExpressionList RPAREN { $$ = {type: 'call', name: $1, args: $3}; }
     ;
 
 tableExprList
@@ -198,8 +217,8 @@ tableExprPart
 
 optTableExprAlias
     : { $$ = null; }
-    | IDENTIFIER { $$ = {value: $1 }; }
-    | AS IDENTIFIER { $$ = {value: $2, alias: 1}; }
+    | IDENTIFIER { $$ = $1; }
+    | AS IDENTIFIER { $$ = $2; }
     ;
 
 optJoinModifier
